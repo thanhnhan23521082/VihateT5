@@ -8,13 +8,13 @@
 
 **ViHateFilter** (or *ViHSD*) is an end-to-end Machine Learning pipeline and REST API designed to detect, classify, and filter offensive language and hate speech in Vietnamese text. It features a lightweight backend powered by FastAPI and a modern, responsive web interface.
 
-## 🚀 Key Features
+##  Key Features
 - **Robust NLP Pipeline**: Custom text preprocessing including Teencode expansion, punctuation removal, and word segmentation using `underthesea`.
 - **Machine Learning Engine**: An optimized classification model extracting lexical, statistical, and TF-IDF features to achieve a **0.73+ Macro F1** score on the ViHSD dataset.
 - **RESTful API**: Fast and asynchronous endpoints built with FastAPI.
 - **Modern Web Interface**: A sleek, user-friendly UI for quick real-time text analysis and batch testing visualization.
 
-## 📂 Project Structure
+##  Project Structure
 
 ```text
 ├── data/               # Datasets (raw and processed) - Excluded from Git
@@ -64,7 +64,7 @@ uvicorn app:app --host 127.0.0.1 --port 8501 --reload
 Once the server is running, open your web browser and navigate to:  
 **[http://127.0.0.1:8501](http://127.0.0.1:8501)**
 
-## 🔌 API Reference
+##  API Reference
 
 ### `GET /`
 Serves the main web interface.
@@ -87,5 +87,5 @@ Predicts the toxicity label of a given Vietnamese text.
   }
   ```
 
-## ⚖️ License
+##  License
 This project is open-source and available under the [MIT License](LICENSE).
