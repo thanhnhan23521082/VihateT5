@@ -1,0 +1,20 @@
+# Data
+data/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Outputs
+outputs/vihsd_pipeline.pkl
+outputs/model_comparison.csv
+outputs/figures/*.png
+
+# IDEs
+.vscode/
+.idea/
