@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ViHSD — Bộ lọc Ngôn từ Thù ghét Tiếng Việt</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: { display: ['Outfit','sans-serif'], body: ['DM Sans','sans-serif'] },
+      colors: { accent: '#059669', clean: '#059669', offensive: '#d97706', hate: '#dc2626' }
+    }
+  }
+}
+</script>
+<style>
+  :root {
+    --bg: #f0f4f2;
+    --surface: #ffffff;
+    --card: #ffffff;
+    --card-glass: rgba(255,255,255,0.82);
+    --border: rgba(5,150,105,0.13);
+    --accent: #059669;
+    --accent-dim: rgba(5,150,105,0.07);
+    --text: #1a2e23;
+    --text-muted: #5e7a6a;
+    --clean: #059669;
+    --offensive: #d97706;
+    --hate: #dc2626;
+    --input-bg: #f0f5f2;
+    --table-hover: rgba(5,150,105,0.04);
+    --chart-grid: rgba(0,0,0,0.06);
+    --shadow: rgba(0,0,0,0.06);
+    --blob-opacity: 0.07;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .bg-blob { position: fixed; border-radius: 50%; pointer-events: none; filter: blur(110px); opacity: var(--blob-opacity); z-index: 0; }
+  .blob-1 { width: 520px; height: 520px; background: #34d399; top: -8%; left: -6%; animation: blobFloat1 28s ease-in-out infinite; }
+  .blob-2 { width: 420px; height: 420px; background: #fbbf24; bottom: -8%; right: -4%; animation: blobFloat2 32s ease-in-out infinite; }
+  .blob-3 { width: 320px; height: 320px; background: #f87171; top: 45%; left: 48%; animation: blobFloat3 22s ease-in-out infinite; }
+  @keyframes blobFloat1 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(90px,70px) scale(1.1)} 66%{transform:translate(-50px,110px) scale(0.9)} }
+  @keyframes blobFloat2 { 0%,100%{transform:translate(0,0) scale(1)} 33%{transform:translate(-70px,-90px) scale(1.15)} 66%{transform:translate(60px,-50px) scale(0.85)} }
+  @keyframes blobFloat3 { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-30%,-60%) scale(1.2)} }
+
+  .app-layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; position: relative; z-index: 1; }
+  @media (max-width: 900px) {
+    .app-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .sidebar.open { display: flex; position: fixed; inset: 0; z-index: 100; width: 100%; }
+    .mobile-toggle { display: flex !important; }
+  }
+
+  .sidebar {
+    background: var(--card-glass); backdrop-filter: blur(24px) saturate(1.4);
+    border-right: 1px solid var(--border); padding: 22px 16px;
+    display: flex; flex-direction: column; gap: 18px; overflow-y: auto;
+    max-height: 100vh; position: sticky; top: 0;
+  }
+  .sidebar-avatar {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(135deg, #059669, #065f46);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Outfit'; font-weight: 800; font-size: 22px; color: #fff;
+    box-shadow: 0 4px 20px rgba(5,150,105,0.2); flex-shrink: 0;
+  }
+  .sidebar-divider { height: 1px; background: var(--border); margin: 2px 0; }
+  .sidebar-section-title { font-family: 'Outfit'; font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 6px; }
+  .sidebar-link { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 12px; color: var(--text); text-decoration: none; font-size: 15px; transition: all 0.2s; border: 1px solid transparent; }
+  .sidebar-link:hover { background: var(--accent-dim); border-color: var(--border); }
+  .sidebar-link i { width: 16px; text-align: center; color: var(--accent); font-size: 12px; }
+
+  .slider-track { width: 100%; height: 5px; border-radius: 3px; background: linear-gradient(90deg, var(--clean), var(--offensive), var(--hate)); position: relative; cursor: pointer; }
+  .slider-thumb { width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 8px rgba(0,0,0,0.18), 0 0 0 3px var(--accent); position: absolute; top: 50%; transform: translate(-50%, -50%); cursor: grab; transition: box-shadow 0.2s; }
+  .slider-thumb:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 0 0 4px var(--accent); }
+
+  .main-content { padding: 32px 48px; overflow-y: auto; }
+  @media (max-width: 900px) { .main-content { padding: 18px; } }
+
+  .hero-card {
+    background: var(--card-glass); backdrop-filter: blur(20px);
+    border: 1px solid var(--border); border-radius: 18px;
+    padding: 32px 36px; position: relative; overflow: hidden;
+  }
+  .hero-scan-line { position: absolute; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent 0%, var(--accent) 40%, var(--accent) 60%, transparent 100%); opacity: 0.18; animation: scanDown 4s ease-in-out infinite; }
+  @keyframes scanDown { 0%{top:-2px;opacity:0} 10%{opacity:0.18} 90%{opacity:0.18} 100%{top:100%;opacity:0} }
+  .hero-grid-bg { position: absolute; inset: 0; opacity: 0.018; background-image: linear-gradient(var(--accent) 1px, transparent 1px), linear-gradient(90deg, var(--accent) 1px, transparent 1px); background-size: 40px 40px; }
+
+  .tab-bar { display: flex; gap: 4px; margin-top: 24px; background: var(--surface); border-radius: 14px; padding: 5px; border: 1px solid var(--border); }
+  .tab-btn { flex: 1; padding: 14px 18px; border-radius: 10px; border: none; background: transparent; color: var(--text-muted); font-family: 'DM Sans'; font-size: 15px; font-weight: 500; cursor: pointer; transition: all 0.25s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .tab-btn:hover { color: var(--text); background: rgba(0,0,0,0.03); }
+  .tab-btn.active { background: var(--card); color: var(--accent); box-shadow: 0 2px 10px var(--shadow); }
+  .tab-panel { display: none; margin-top: 24px; animation: fadeSlideUp 0.35s ease; }
+  .tab-panel.active { display: block; }
+  @keyframes fadeSlideUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+  .glass-card { background: var(--card-glass); backdrop-filter: blur(14px); border: 1px solid var(--border); border-radius: 16px; padding: 28px; transition: border-color 0.25s, box-shadow 0.25s; }
+  .glass-card:hover { border-color: rgba(5,150,105,0.22); box-shadow: 0 4px 16px rgba(0,0,0,0.04); }
+
+  .input-area { width: 100%; min-height: 180px; padding: 18px 20px; border-radius: 14px; background: var(--input-bg); border: 1.5px solid var(--border); color: var(--text); font-family: 'DM Sans'; font-size: 16px; line-height: 1.7; resize: vertical; transition: border-color 0.25s, box-shadow 0.25s; outline: none; }
+  .input-area::placeholder { color: var(--text-muted); opacity: 0.7; }
+  .input-area:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+  .btn-primary { display: inline-flex; align-items: center; gap: 10px; padding: 15px 28px; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg, #059669, #047857); color: #fff; font-family: 'Outfit'; font-weight: 600; font-size: 16px; box-shadow: 0 4px 18px rgba(5,150,105,0.22); transition: all 0.25s; position: relative; overflow: hidden; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(5,150,105,0.32); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary .spinner { display: none; width: 16px; height: 16px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .btn-primary.loading .spinner { display: block; }
+  .btn-primary.loading .btn-text { display: none; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+
+  .sample-chip { display: inline-block; padding: 8px 16px; border-radius: 20px; background: var(--input-bg); border: 1px solid var(--border); color: var(--text-muted); font-size: 14px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .sample-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .result-card { border-radius: 18px; padding: 28px; position: relative; overflow: hidden; animation: fadeSlideUp 0.4s ease; }
+  .result-card.label-clean { background: rgba(5,150,105,0.06); border: 1.5px solid rgba(5,150,105,0.28); }
+  .result-card.label-offensive { background: rgba(217,119,6,0.06); border: 1.5px solid rgba(217,119,6,0.28); }
+  .result-card.label-hate { background: rgba(220,38,38,0.06); border: 1.5px solid rgba(220,38,38,0.28); }
+
+  .result-icon { width: 54px; height: 54px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .result-icon.label-clean { background: rgba(5,150,105,0.12); color: var(--clean); }
+  .result-icon.label-offensive { background: rgba(217,119,6,0.12); color: var(--offensive); }
+  .result-icon.label-hate { background: rgba(220,38,38,0.12); color: var(--hate); }
+
+  .gauge-svg { transform: rotate(-90deg); }
+  .gauge-bg { fill: none; stroke: var(--chart-grid); stroke-width: 7; }
+  .gauge-fill { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1s ease, stroke 0.5s; }
+  .gauge-text { font-family: 'Outfit'; font-weight: 700; font-size: 18px; fill: var(--text); }
+
+  .expander-trigger { width: 100%; display: flex; align-items: center; gap: 7px; padding: 9px 0; background: none; border: none; border-top: 1px solid var(--border); color: var(--text-muted); font-size: 13px; cursor: pointer; font-family: 'DM Sans'; transition: color 0.2s; }
+  .expander-trigger:hover { color: var(--accent); }
+  .expander-trigger i { transition: transform 0.3s; font-size: 10px; }
+  .expander-trigger.open i { transform: rotate(180deg); }
+  .expander-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+  .expander-content.open { max-height: 600px; }
+
+  .prep-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .prep-step:last-child { border-bottom: none; }
+  .prep-step-label { flex-shrink: 0; width: 130px; font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; padding-top: 2px; }
+  .prep-step-value { color: var(--text); line-height: 1.45; word-break: break-word; }
+  .prep-step-value .highlight { color: var(--offensive); font-weight: 600; }
+  .prep-step-value .highlight-green { color: var(--clean); font-weight: 600; }
+
+  .upload-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 48px 24px; text-align: center; cursor: pointer; transition: all 0.25s; background: var(--surface); }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-dim); }
+  .upload-zone.dragover .upload-icon { transform: scale(1.12); }
+  .upload-icon { font-size: 42px; color: var(--text-muted); transition: transform 0.25s; margin-bottom: 14px; }
+
+  .data-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+  .data-table thead th { padding: 12px 16px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--text-muted); background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
+  .data-table thead th:first-child { border-radius: 7px 0 0 0; }
+  .data-table thead th:last-child { border-radius: 0 7px 0 0; }
+  .data-table tbody td { padding: 11px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .data-table tbody tr:hover { background: var(--table-hover); }
+  .badge { display: inline-block; padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; }
+  .badge-clean { background: rgba(5,150,105,0.12); color: var(--clean); }
+  .badge-offensive { background: rgba(217,119,6,0.12); color: var(--offensive); }
+  .badge-hate { background: rgba(220,38,38,0.12); color: var(--hate); }
+
+  .cm-cell { display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; border-radius: 8px; font-family: 'Outfit'; min-height: 56px; }
+
+  .mobile-toggle { display: none !important; position: fixed; top: 10px; left: 10px; z-index: 99; width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border); background: var(--card-glass); backdrop-filter: blur(14px); color: var(--accent); align-items: center; justify-content: center; font-size: 16px; cursor: pointer; }
+
+  .toast { position: fixed; bottom: 22px; right: 22px; padding: 11px 18px; border-radius: 10px; font-size: 13px; z-index: 200; animation: toastIn 0.35s ease, toastOut 0.35s ease 2.6s forwards; box-shadow: 0 6px 24px rgba(0,0,0,0.12); }
+  .toast-success { background: #059669; color: #fff; }
+  .toast-error { background: #dc2626; color: #fff; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { to{opacity:0;transform:translateY(18px)} }
+
+  @keyframes pulse-ring { 0%{transform:scale(0.9);opacity:0.6} 100%{transform:scale(1.3);opacity:0} }
+  .pulse-dot { position: relative; }
+  .pulse-dot::before { content: ''; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--accent); animation: pulse-ring 2s ease-out infinite; }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 16px; }
+  .stat-val { font-family: 'Outfit'; font-weight: 800; font-size: 24px; color: var(--text); }
+  .stat-label { font-size: 12px; color: var(--text-muted); }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+</style>
+</head>
+<body>
+
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+<div class="bg-blob blob-3"></div>
+
+<button class="mobile-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Menu">
+  <i class="fas fa-bars"></i>
+</button>
+
+<div class="app-layout">
+
+  <!-- ======== SIDEBAR ======== -->
+  <aside class="sidebar" role="navigation" aria-label="Sidebar navigation">
+    <div class="flex items-center gap-3">
+      <div class="sidebar-avatar">AI</div>
+      <div>
+        <div class="font-display font-bold text-base leading-tight" style="color:var(--text)">AI/ML Portfolio</div>
+        <div class="text-sm mt-0.5" style="color:var(--accent)">Hate Speech Detection</div>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div>
+      <div class="sidebar-section-title">About the Project</div>
+      <p class="text-sm leading-relaxed" style="color:var(--text-muted)">
+        The <strong style="color:var(--text)">ViHSD</strong> system is trained on over
+        <strong style="color:var(--accent)">33,000 Vietnamese social media comments</strong>,
+        classified into 3 labels: CLEAN, OFFENSIVE, HATE.
+      </p>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div>
+      <div class="sidebar-section-title">Configuration</div>
+      <label class="text-sm font-medium block mb-3" style="color:var(--text-muted)">
+        Warning Threshold (Hate)
+        <span id="thresholdValue" class="float-right font-display font-bold text-base" style="color:var(--accent)">0.50</span>
+      </label>
+      <div class="slider-track" id="sliderTrack" role="slider" aria-label="Threshold" aria-valuemin="0.1" aria-valuemax="0.9" aria-valuenow="0.5" tabindex="0">
+        <div class="slider-thumb" id="sliderThumb"></div>
+      </div>
+      <div class="flex justify-between text-xs mt-2" style="color:var(--text-muted)">
+        <span>Sensitive</span><span>Default</span><span>Reference</span>
+      </div>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div>
+      <div class="sidebar-section-title">Links</div>
+      <div class="flex flex-col gap-2">
+        <a href="https://github.com" target="_blank" rel="noopener" class="sidebar-link"><i class="fab fa-github"></i> GitHub Repository</a>
+        <a href="https://arxiv.org/pdf/2103.11528" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-file-alt"></i> Original Paper (ArXiv)</a>
+        <a href="https://huggingface.co/datasets/uitnlp/vihsd" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-database"></i> Dataset (HuggingFace)</a>
+      </div>
+    </div>
+    <div class="mt-auto pt-4 text-sm" style="color:var(--text-muted)">
+      <div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-green-500 pulse-dot inline-block"></span> System Active</div>
+      Scikit-learn, FastAPI, Python
+    </div>
+  </aside>
+
+  <!-- ======== MAIN CONTENT ======== -->
+  <main class="main-content" role="main">
+
+    <!-- HERO -->
+    <section class="hero-card">
+      <div class="hero-grid-bg"></div>
+      <div class="hero-scan-line"></div>
+      <div class="relative z-10 flex flex-wrap items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-lg"></span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:var(--accent-dim);color:var(--accent);letter-spacing:0.4px;font-size:10px;">v1.0 — PRODUCTION</span>
+          </div>
+          <h1 class="font-display leading-tight mb-2" style="font-size:clamp(24px,3.5vw,34px);font-weight:800;color:var(--text)">
+            ViHSD — <span style="color:var(--accent)">Vietnamese Hate Speech</span> Filter
+          </h1>
+          <p class="text-base max-w-2xl" style="color:var(--text-muted);line-height:1.65">
+            Detects and flags toxic and offensive social media comments using Machine Learning. Macro F1 <strong style="color:var(--accent)">0.73+</strong> on test set.
+          </p>
+        </div>
+        <div class="stats-row flex-nowrap gap-4">
+          <div class="text-center"><div class="stat-val">33,424</div><div class="stat-label">Samples</div></div>
+          <div class="text-center"><div class="stat-val">30K+</div><div class="stat-label">Features</div></div>
+          <div class="text-center"><div class="stat-val" style="color:var(--accent)">0.731</div><div class="stat-label">Macro F1</div></div>
+          <div class="text-center"><div class="stat-val">6</div><div class="stat-label">Models</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar" role="tablist">
+      <button class="tab-btn active" data-tab="single" role="tab" aria-selected="true"><i class="fas fa-pen-to-square"></i> Single Test</button>
+      <button class="tab-btn" data-tab="batch" role="tab" aria-selected="false"><i class="fas fa-file-csv"></i> Batch Analysis</button>
+      <button class="tab-btn" data-tab="model" role="tab" aria-selected="false"><i class="fas fa-chart-bar"></i> Model Details</button>
+    </div>
+
+    <!-- ==================== TAB 1 ==================== -->
+    <div class="tab-panel active" id="panel-single" role="tabpanel">
+      <div class="grid grid-layout gap-6" style="grid-template-columns:1fr 1fr;">
+        <div class="glass-card">
+          <h2 class="font-display font-bold text-lg mb-4" style="color:var(--text)"><i class="fas fa-keyboard mr-2" style="color:var(--accent)"></i>Enter Comment</h2>
+          <textarea id="inputText" class="input-area" placeholder="Enter the comment you want to check here..." aria-label="Enter comment"></textarea>
+          <div class="flex flex-wrap gap-2 mt-3 mb-4">
+            <span class="text-sm font-medium" style="color:var(--text-muted);line-height:30px">Quick Try:</span>
+            <button class="sample-chip" data-text="Bai hat hay qua, toi thich lam!">Clean</button>
+            <button class="sample-chip" data-text="May ngu vcl, chi biet pha">Offensive</button>
+            <button class="sample-chip" data-text="Lu ban nuoc dang bi xu ban het di">Hate</button>
+            <button class="sample-chip" data-text="Dmm tml nay lam cc gi vay???">Slang</button>
+            <button class="sample-chip" data-text="Chuc mung sinh nhat ban nhe!">Positive</button>
+          </div>
+          <button class="btn-primary w-full justify-center" id="analyzeBtn" onclick="analyzeSingle()">
+            <div class="spinner"></div>
+            <span class="btn-text"><i class="fas fa-magnifying-glass-chart"></i> Analyze & Scan</span>
+          </button>
+        </div>
+        <div class="flex flex-col">
+          <div id="resultPlaceholder" class="glass-card flex flex-col items-center justify-center text-center flex-1" style="min-height:100%;">
+            <i class="fas fa-shield-halved text-2xl mb-2" style="color:var(--border)"></i>
+            <p class="font-display font-semibold text-lg" style="color:var(--text-muted)">No Results Yet</p>
+            <p class="text-sm mt-1" style="color:var(--text-muted);opacity:0.65">Enter a comment and click "Analyze & Scan"</p>
+          </div>
+          <div id="resultCard" class="result-card" style="display:none;">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="result-icon" id="resultIcon"><i class="fas fa-check"></i></div>
+              <div>
+                <div class="font-display font-extrabold text-base" id="resultLabel">CLEAN</div>
+                <div class="text-sm mt-1" id="resultDesc">Safe and friendly comment.</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-4 mb-1">
+              <div style="width:82px;height:82px;flex-shrink:0;">
+                <svg viewBox="0 0 120 120" class="gauge-svg" style="width:100%;height:100%;"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" id="gaugeFill" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/></svg>
+                <div style="margin-top:-60px;text-align:center;"><span class="gauge-text font-display" id="gaugeText" style="font-size:17px;">0%</span></div>
+              </div>
+              <div>
+                <div class="text-sm font-semibold uppercase mb-2" style="color:var(--text-muted);letter-spacing:1px;">Confidence</div>
+                <div class="text-sm" style="color:var(--text-muted)" id="confidenceDesc">AI has not analyzed yet</div>
+                <div class="mt-2 w-36 h-1.5 rounded-full" style="background:var(--chart-grid);"><div class="h-full rounded-full transition-all duration-1000" id="confidenceBar" style="width:0%;"></div></div>
+              </div>
+            </div>
+            <button class="expander-trigger" id="expanderTrigger" onclick="toggleExpander()"><i class="fas fa-chevron-down"></i><span class="text-sm font-medium">What did the AI see?</span></button>
+            <div class="expander-content" id="expanderContent"><div class="pt-1" id="prepSteps"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2 ==================== -->
+    <div class="tab-panel" id="panel-batch" role="tabpanel">
+      <div class="glass-card mb-4">
+        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-upload mr-2" style="color:var(--accent)"></i>Upload CSV File</h2>
+        <p class="text-sm mb-4" style="color:var(--text-muted)">Supports .csv files with a "text" column or the first column. Max 500 rows.</p>
+        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload CSV file">
+          <input type="file" id="fileInput" accept=".csv" style="display:none;">
+          <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
+          <div class="font-display font-semibold text-lg mb-1" style="color:var(--text)">Drag and drop file here</div>
+          <div class="text-sm" style="color:var(--text-muted)">or click to select a .csv file</div>
+        </div>
+        <div id="fileInfo" class="mt-3 text-sm font-medium" style="color:var(--text-muted);display:none;"></div>
+      </div>
+      <div id="batchProgress" class="glass-card mb-4" style="display:none;">
+        <div class="flex items-center gap-2 mb-2">
+          <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+          <span class="font-display font-semibold text-sm" id="batchStatus">Processing...</span>
+        </div>
+        <div class="w-full h-1.5 rounded-full" style="background:var(--chart-grid);"><div class="h-full rounded-full transition-all duration-300" id="batchBar" style="width:0%;background:var(--accent);"></div></div>
+      </div>
+      <div id="batchResults" style="display:none;">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-display font-bold text-lg" style="color:var(--text)"><i class="fas fa-table mr-2" style="color:var(--accent)"></i>Analysis Results</h2>
+          <button class="btn-primary" style="padding:10px 18px;font-size:14px;" onclick="downloadBatchCSV()"><i class="fas fa-download"></i> Download CSV</button>
+        </div>
+        <div class="grid grid-cols-3 gap-4 mb-4" id="batchSummary"></div>
+        <div class="glass-card" style="padding:0;overflow:hidden;">
+          <div style="max-height:400px;overflow-y:auto;"><table class="data-table" id="batchTable"><thead><tr><th>#</th><th>Comment</th><th>Label</th><th>Confidence</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3 ==================== -->
+    <div class="tab-panel" id="panel-model" role="tabpanel">
+      <div class="glass-card mb-4">
+        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-chart-column mr-2" style="color:var(--accent)"></i>F1-Score Comparison Between Models</h2>
+        <p class="text-sm mb-4" style="color:var(--text-muted)">Evaluation on Test Set — Main Metric: Macro F1</p>
+        <div style="height:300px;"><canvas id="modelChart"></canvas></div>
+      </div>
+      <div class="grid grid-layout gap-4" style="grid-template-columns:1fr 1fr;">
+        <div class="glass-card">
+          <h2 class="font-display font-bold text-sm mb-3" style="color:var(--text)">Detailed F1 Scores</h2>
+          <div style="overflow-x:auto;"><table class="data-table" id="f1Table"><thead><tr><th>Model</th><th>Macro F1</th><th>F1 Clean</th><th>F1 Off</th><th>F1 Hate</th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="glass-card">
+          <h2 class="font-display font-bold text-sm mb-2" style="color:var(--text)">Confusion Matrix</h2>
+          <p class="text-sm mb-4" style="color:var(--text-muted)">LogisticRegression — Test Set</p>
+          <div id="confusionMatrix" class="flex flex-col gap-2"></div>
+        </div>
+      </div>
+      <div class="glass-card mt-4">
+        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-chart-line mr-2" style="color:var(--accent)"></i>Learning Curve — LogisticRegression</h2>
+        <p class="text-sm mb-4" style="color:var(--text-muted)">Macro F1 by training set size (3-Fold Stratified CV)</p>
+        <div style="height:320px;"><canvas id="learningChart"></canvas></div>
+      </div>
+      <div class="glass-card mt-4">
+        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-flask mr-2" style="color:var(--accent)"></i>Ablation Study</h2>
+        <p class="text-sm mb-4" style="color:var(--text-muted)">Contribution of each feature group</p>
+        <div style="height:260px;"><canvas id="ablationChart"></canvas></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+
+</body>
+</html>
