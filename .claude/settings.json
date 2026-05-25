@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c 'import json; nb=json.load\\(open\\('\\\\''vihatet5-qa.ipynb'\\\\'',encoding='\\\\''utf-8'\\\\''\\)\\); print\\('\\\\''cells:'\\\\'', len\\(nb['\\\\''cells'\\\\'']\\)\\); *)",
+      "Bash(python -c ' *)",
+      "Bash(python -m py_compile app.py src/remote_inference.py)",
+      "Bash(python -c \"import importlib, app; print\\('app ok | qa method present:', hasattr\\(app.model, 'qa'\\)\\)\")",
+      "Bash(python -c \"import app; print\\('app ok | predict_all:', hasattr\\(app.model,'predict_all'\\)\\)\")",
+      "Bash(python -c \"import json; nb=json.load\\(open\\('kaggle/vihatet5_kaggle_server.ipynb',encoding='utf-8'\\)\\); print\\('cells:', len\\(nb['cells']\\), '| types:', [c['cell_type'] for c in nb['cells']]\\)\")",
+      "Bash(python -m py_compile app.py src/remote_inference.py kaggle/vihatet5_kaggle_server.py)",
+      "Bash(python -c \"import app; print\\('app ok'\\)\")",
+      "Bash(python -m py_compile src/mock.py app.py)",
+      "Bash(python -m py_compile kaggle/vihatet5_kaggle_server.py src/mock.py app.py)",
+      "Bash(MOCK_MODE=1 python -c ' *)",
+      "Bash(python -m py_compile app.py src/mock.py src/remote_inference.py kaggle/vihatet5_kaggle_server.py)"
+    ]
+  }
+}

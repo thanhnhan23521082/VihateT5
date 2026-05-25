@@ -189,6 +189,147 @@ tailwind.config = {
   .stat-val { font-family: 'Outfit'; font-weight: 800; font-size: 24px; color: var(--text); }
   .stat-label { font-size: 12px; color: var(--text-muted); }
 
+  /* ===== Inference pipeline (trace) ===== */
+  .pipe-stage { padding: 18px 0; border-bottom: 1px solid var(--border); }
+  .pipe-stage:last-child { border-bottom: none; }
+  .pipe-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .pipe-num { width: 24px; height: 24px; border-radius: 7px; background: var(--accent-dim); color: var(--accent); font-family: 'Outfit'; font-weight: 700; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pipe-title { font-family: 'Outfit'; font-weight: 600; font-size: 14px; color: var(--text); }
+  .pipe-sub { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+  .pipe-text { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.6; color: var(--text); word-break: break-word; }
+  .pipe-text .prefix-tag { color: var(--accent); font-family: 'Outfit'; font-weight: 600; }
+  .pipe-text.muted { color: var(--text-muted); font-style: italic; }
+
+  /* tokenization: nhóm theo từ + mảnh subword */
+  .tok-wrap { display: flex; flex-wrap: wrap; gap: 10px; }
+  .tok-word { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .tok-pieces { display: flex; gap: 3px; }
+  .tok-piece { font-family: 'DM Sans'; font-size: 13px; padding: 4px 8px; border-radius: 7px; background: var(--accent-dim); color: var(--accent); border: 1px solid var(--border); white-space: nowrap; }
+  .tok-piece.multi { background: rgba(217,119,6,0.10); color: var(--offensive); border-color: rgba(217,119,6,0.25); }
+  .tok-word-label { font-size: 11px; color: var(--text-muted); max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tok-legend { display: flex; gap: 16px; margin-top: 12px; font-size: 11px; color: var(--text-muted); }
+  .tok-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .tok-dot { width: 9px; height: 9px; border-radius: 3px; }
+
+  /* label probabilities */
+  .prob-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .prob-name { width: 92px; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+  .prob-track { flex: 1; height: 9px; border-radius: 5px; background: var(--chart-grid); overflow: hidden; }
+  .prob-fill { height: 100%; border-radius: 5px; width: 0; transition: width 0.7s ease; }
+  .prob-val { width: 54px; text-align: right; font-family: 'Outfit'; font-weight: 700; font-size: 13px; }
+
+  /* saliency heat */
+  .sal-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+  .sal-chip { font-size: 13px; padding: 4px 8px; border-radius: 7px; border: 1px solid var(--border); color: var(--text); }
+
+  /* hate spans */
+  .span-text { background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; line-height: 1.8; }
+  .span-hit { background: rgba(220,38,38,0.16); color: var(--hate); font-weight: 600; padding: 1px 5px; border-radius: 5px; border-bottom: 2px solid var(--hate); }
+  .span-none { color: var(--text-muted); font-style: italic; font-size: 13px; }
+
+  /* stagger reveal: pipe-stage xuất hiện lần lượt */
+  .pipe-stage { opacity: 0; transform: translateY(10px); }
+  .pipe-stage.show { animation: stageIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  @keyframes stageIn { to { opacity: 1; transform: translateY(0); } }
+
+  /* "scanner" line khi đang xử lý */
+  .pipeline-scanning { position: relative; }
+  .pipeline-scanning::before { content:''; position: absolute; left: 0; right: 0; top: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scanLine 1.4s linear infinite; pointer-events: none; }
+  @keyframes scanLine { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(700px); opacity: 0; } }
+
+  /* token "đập" mượt khi xuất hiện */
+  .tok-piece, .sal-chip { animation: chipIn 0.35s ease backwards; }
+  @keyframes chipIn { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+
+  /* saliency: toggle Mảnh / Từ / 2-từ / 3-từ */
+  .sal-tabs { display: inline-flex; gap: 2px; background: var(--surface); border-radius: 9px; padding: 3px; border: 1px solid var(--border); margin-bottom: 12px; }
+  .sal-tab { padding: 5px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); font-family: 'DM Sans'; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.2s, color 0.2s; }
+  .sal-tab:hover { color: var(--text); }
+  .sal-tab.active { background: var(--card); color: var(--accent); font-weight: 600; box-shadow: 0 1px 3px var(--shadow); }
+  .sal-score { font-size: 10px; opacity: 0.7; margin-left: 4px; }
+
+  /* QA card */
+  .qa-explain { background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.65; color: var(--text); min-height: 56px; }
+  .qa-explain.loading { color: var(--text-muted); font-style: italic; }
+  .qa-cursor { display: inline-block; width: 6px; height: 14px; background: var(--accent); margin-left: 2px; animation: caret 1s infinite; vertical-align: middle; }
+  @keyframes caret { 50% { opacity: 0; } }
+
+  /* ====== Dashboard 4 task ====== */
+  .task-card { display: flex; flex-direction: column; min-height: 220px; }
+  .task-head { display: flex; align-items: center; gap: 8px; font-family: 'Outfit'; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .task-head .task-sub { margin-left: auto; font-family: 'DM Sans'; font-size: 10.5px; color: var(--text-muted); font-weight: 400; letter-spacing: 0.3px; background: var(--input-bg); padding: 2px 8px; border-radius: 5px; }
+  .task-foot { margin-top: 10px; font-size: 11px; color: var(--text-muted); display: flex; gap: 12px; }
+  .task-foot .raw { font-family: 'DM Sans'; opacity: 0.7; word-break: break-all; }
+
+  .task-badge { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; border-radius: 14px; font-family: 'Outfit'; font-weight: 800; font-size: 34px; letter-spacing: 3px; border: 2px solid currentColor; min-height: 110px; animation: badgeIn 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+  @keyframes badgeIn { from { opacity: 0; transform: scale(0.88); } to { opacity: 1; transform: scale(1); } }
+  .task-badge.label-clean { color: var(--clean); background: rgba(5,150,105,0.08); }
+  .task-badge.label-offensive { color: var(--offensive); background: rgba(217,119,6,0.09); }
+  .task-badge.label-hate { color: var(--hate); background: rgba(220,38,38,0.10); animation: badgeIn 0.55s cubic-bezier(0.22, 1, 0.36, 1), pulseHate 1.6s ease-in-out infinite 0.55s; }
+  @keyframes pulseHate { 0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } 50% { box-shadow: 0 0 0 10px rgba(220,38,38,0.10); } }
+  .task-badge.label-toxic { color: var(--offensive); background: rgba(217,119,6,0.09); }
+  .task-badge.label-none { color: var(--clean); background: rgba(5,150,105,0.08); }
+  .task-badge.label-loading, .task-badge.label-error { color: var(--text-muted); border-style: dashed; font-size: 15px; letter-spacing: 1px; font-weight: 600; }
+  .task-badge.label-loading::before { content: ''; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 10px; display: inline-block; vertical-align: middle; }
+
+  /* HOS block: highlight các vùng thù ghét */
+  .hos-text { background: var(--input-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; font-size: 14px; line-height: 1.85; color: var(--text); flex: 1; }
+  .hos-text .span-hit { background: rgba(220,38,38,0.18); color: var(--hate); font-weight: 600; padding: 1px 5px; border-radius: 5px; border-bottom: 2px solid var(--hate); }
+  .hos-text.no-hit { color: var(--text-muted); font-style: italic; }
+
+  @media (max-width: 900px) {
+    #dashGrid { grid-template-columns: 1fr !important; }
+  }
+
+  /* ===== Sidebar Navigation ===== */
+  .nav-link { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 11px; color: var(--text-muted); font-family: 'Outfit'; font-weight: 500; font-size: 14px; cursor: pointer; transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); border: 1px solid transparent; text-decoration: none; }
+  .nav-link:hover { background: var(--accent-dim); color: var(--accent); transform: translateX(2px); }
+  .nav-link.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+  .nav-link i { width: 16px; text-align: center; font-size: 13px; }
+
+  /* ===== Page transitions ===== */
+  .page { display: none; animation: pageIn 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+  .page.active { display: block; }
+  @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ===== Per-block enhancements (confidence + model internals) ===== */
+  .micro-bar { display: flex; align-items: center; gap: 8px; margin-top: 4px; font-size: 11px; color: var(--text-muted); }
+  .micro-bar .name { width: 70px; }
+  .micro-bar .track { flex: 1; height: 5px; border-radius: 3px; background: var(--chart-grid); overflow: hidden; }
+  .micro-bar .fill { height: 100%; border-radius: 3px; transition: width 0.7s ease; }
+  .micro-bar .val { width: 44px; text-align: right; font-family: 'Outfit'; font-weight: 600; font-size: 11px; }
+  .conf-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+  .conf-title { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+  .raw-out { font-family: 'DM Sans'; font-size: 11px; color: var(--text-muted); background: var(--input-bg); border-radius: 6px; padding: 3px 8px; display: inline-block; word-break: break-all; max-width: 100%; }
+
+  /* ===== Batch page ===== */
+  .upload-zone { border: 2px dashed var(--border); border-radius: 16px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.3s; background: var(--input-bg); }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: var(--accent-dim); transform: scale(1.01); }
+  .upload-icon { font-size: 36px; color: var(--accent); margin-bottom: 8px; }
+  .req-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px 16px; font-size: 12px; color: var(--text-muted); margin-top: 12px; }
+  .req-list li { list-style: none; }
+  .req-list i { color: var(--accent); margin-right: 5px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .stat-card .num { font-family: 'Outfit'; font-weight: 800; font-size: 24px; }
+  .stat-card .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-top: 2px; }
+  .batch-table { font-size: 12px; }
+  .batch-table th { background: var(--surface); position: sticky; top: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .batch-table td, .batch-table th { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; font-family: 'Outfit'; }
+  .badge-clean, .badge-none { background: rgba(5,150,105,0.12); color: var(--clean); }
+  .badge-offensive, .badge-toxic { background: rgba(217,119,6,0.13); color: var(--offensive); }
+  .badge-hate { background: rgba(220,38,38,0.13); color: var(--hate); }
+
+  /* ===== About page ===== */
+  .ds-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; transition: all 0.3s; }
+  .ds-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px var(--shadow); }
+  .ds-name { font-family: 'Outfit'; font-weight: 800; font-size: 17px; color: var(--text); }
+  .ds-tag { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 5px; background: var(--accent-dim); color: var(--accent); font-weight: 600; letter-spacing: 0.5px; margin-left: 6px; }
+  .ds-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0; }
+  .ds-meta div { background: var(--input-bg); border-radius: 8px; padding: 8px 10px; }
+  .ds-meta .v { font-family: 'Outfit'; font-weight: 700; font-size: 14px; color: var(--accent); }
+  .ds-meta .l { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
@@ -217,43 +358,39 @@ tailwind.config = {
     <div>
       <div class="sidebar-section-title">About the Project</div>
       <p class="text-sm leading-relaxed" style="color:var(--text-muted)">
-        The <strong style="color:var(--text)">ViHSD</strong> system is trained on over
-        <strong style="color:var(--accent)">33,000 Vietnamese social media comments</strong>,
-        classified into 3 labels: CLEAN, OFFENSIVE, HATE.
+        Demo dùng <strong style="color:var(--text)">ViHateT5</strong> — model text-to-text
+        pre-train trên <strong style="color:var(--accent)">10.7M comment VOZ</strong>, phân loại
+        3 nhãn: CLEAN, OFFENSIVE, HATE. Model chạy remote (Kaggle GPU).
       </p>
     </div>
     <div class="sidebar-divider"></div>
     <div>
-      <div class="sidebar-section-title">Configuration</div>
-      <label class="text-sm font-medium block mb-3" style="color:var(--text-muted)">
-        Warning Threshold (Hate)
-        <span id="thresholdValue" class="float-right font-display font-bold text-base" style="color:var(--accent)">0.50</span>
-      </label>
-      <div class="slider-track" id="sliderTrack" role="slider" aria-label="Threshold" aria-valuemin="0.1" aria-valuemax="0.9" aria-valuenow="0.5" tabindex="0">
-        <div class="slider-thumb" id="sliderThumb"></div>
-      </div>
-      <div class="flex justify-between text-xs mt-2" style="color:var(--text-muted)">
-        <span>Sensitive</span><span>Default</span><span>Reference</span>
-      </div>
+      <div class="sidebar-section-title">Navigation</div>
+      <nav class="flex flex-col gap-1.5 mt-1" id="sideNav">
+        <a href="#/" class="nav-link" data-route="single"><i class="fas fa-magnifying-glass-chart"></i><span>Single Test</span></a>
+        <a href="#/batch" class="nav-link" data-route="batch"><i class="fas fa-table"></i><span>Batch Moderation</span></a>
+        <a href="#/about" class="nav-link" data-route="about"><i class="fas fa-circle-info"></i><span>Đồ án &amp; Datasets</span></a>
+      </nav>
     </div>
     <div class="sidebar-divider"></div>
     <div>
-      <div class="sidebar-section-title">Links</div>
+      <div class="sidebar-section-title">External</div>
       <div class="flex flex-col gap-2">
-        <a href="https://github.com" target="_blank" rel="noopener" class="sidebar-link"><i class="fab fa-github"></i> GitHub Repository</a>
-        <a href="https://arxiv.org/pdf/2103.11528" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-file-alt"></i> Original Paper (ArXiv)</a>
-        <a href="https://huggingface.co/datasets/uitnlp/vihsd" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-database"></i> Dataset (HuggingFace)</a>
+        <a href="https://aclanthology.org/2024.findings-acl.355" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-file-alt"></i> ViHateT5 paper</a>
+        <a href="https://huggingface.co/tarudesu/ViHateT5-base-HSD" target="_blank" rel="noopener" class="sidebar-link"><i class="fas fa-cube"></i> Model (HuggingFace)</a>
       </div>
     </div>
     <div class="mt-auto pt-4 text-sm" style="color:var(--text-muted)">
-      <div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-green-500 pulse-dot inline-block"></span> System Active</div>
-      Scikit-learn, FastAPI, Python
+      <div class="flex items-center gap-2 mb-2"><span class="w-2 h-2 rounded-full bg-green-500 pulse-dot inline-block" id="statusDot"></span> <span id="statusText">System Active</span></div>
+      ViHateT5 · FastAPI · Kaggle GPU
     </div>
   </aside>
 
   <!-- ======== MAIN CONTENT ======== -->
   <main class="main-content" role="main">
 
+    <!-- ============ PAGE: SINGLE ============ -->
+    <section class="page active" id="page-single" data-route="single">
     <!-- HERO -->
     <section class="hero-card">
       <div class="hero-grid-bg"></div>
@@ -262,143 +399,271 @@ tailwind.config = {
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-2 mb-1">
             <span class="text-lg"></span>
-            <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:var(--accent-dim);color:var(--accent);letter-spacing:0.4px;font-size:10px;">v1.0 — PRODUCTION</span>
+            <span class="text-xs font-semibold px-2 py-0.5 rounded-full" style="background:var(--accent-dim);color:var(--accent);letter-spacing:0.4px;font-size:10px;">tarudesu/ViHateT5-base-HSD</span>
           </div>
           <h1 class="font-display leading-tight mb-2" style="font-size:clamp(24px,3.5vw,34px);font-weight:800;color:var(--text)">
-            ViHSD — <span style="color:var(--accent)">Vietnamese Hate Speech</span> Filter
+            ViHateT5 — <span style="color:var(--accent)">Vietnamese Hate Speech</span> Detector
           </h1>
           <p class="text-base max-w-2xl" style="color:var(--text-muted);line-height:1.65">
-            Detects and flags toxic and offensive social media comments using Machine Learning. Macro F1 <strong style="color:var(--accent)">0.73+</strong> on test set.
+            Diễn giải cách <strong style="color:var(--accent)">ViHateT5</strong> (text-to-text Transformer) đọc và phát hiện ngôn từ thù ghét — từ tiền xử lý, tách subword, tới xác suất nhãn và vùng từ độc hại.
           </p>
-        </div>
-        <div class="stats-row flex-nowrap gap-4">
-          <div class="text-center"><div class="stat-val">33,424</div><div class="stat-label">Samples</div></div>
-          <div class="text-center"><div class="stat-val">30K+</div><div class="stat-label">Features</div></div>
-          <div class="text-center"><div class="stat-val" style="color:var(--accent)">0.731</div><div class="stat-label">Macro F1</div></div>
-          <div class="text-center"><div class="stat-val">6</div><div class="stat-label">Models</div></div>
         </div>
       </div>
     </section>
 
-    <!-- Tab Bar -->
-    <div class="tab-bar" role="tablist">
-      <button class="tab-btn active" data-tab="single" role="tab" aria-selected="true"><i class="fas fa-pen-to-square"></i> Single Test</button>
-      <button class="tab-btn" data-tab="batch" role="tab" aria-selected="false"><i class="fas fa-file-csv"></i> Batch Analysis</button>
-      <button class="tab-btn" data-tab="model" role="tab" aria-selected="false"><i class="fas fa-chart-bar"></i> Model Details</button>
-    </div>
-
-    <!-- ==================== TAB 1 ==================== -->
-    <div class="tab-panel active" id="panel-single" role="tabpanel">
-      <div class="grid grid-layout gap-6" style="grid-template-columns:1fr 1fr;">
-        <div class="glass-card">
-          <h2 class="font-display font-bold text-lg mb-4" style="color:var(--text)"><i class="fas fa-keyboard mr-2" style="color:var(--accent)"></i>Enter Comment</h2>
-          <textarea id="inputText" class="input-area" placeholder="Enter the comment you want to check here..." aria-label="Enter comment"></textarea>
-          <div class="flex flex-wrap gap-2 mt-3 mb-4">
-            <span class="text-sm font-medium" style="color:var(--text-muted);line-height:30px">Quick Try:</span>
-            <button class="sample-chip" data-text="Bai hat hay qua, toi thich lam!">Clean</button>
-            <button class="sample-chip" data-text="May ngu vcl, chi biet pha">Offensive</button>
-            <button class="sample-chip" data-text="Lu ban nuoc dang bi xu ban het di">Hate</button>
-            <button class="sample-chip" data-text="Dmm tml nay lam cc gi vay???">Slang</button>
-            <button class="sample-chip" data-text="Chuc mung sinh nhat ban nhe!">Positive</button>
-          </div>
-          <button class="btn-primary w-full justify-center" id="analyzeBtn" onclick="analyzeSingle()">
-            <div class="spinner"></div>
-            <span class="btn-text"><i class="fas fa-magnifying-glass-chart"></i> Analyze & Scan</span>
-          </button>
+    <!-- ==================== INPUT ==================== -->
+    <section id="panel-single" style="margin-top:24px;">
+      <div class="glass-card">
+        <h2 class="font-display font-bold text-lg mb-3" style="color:var(--text)"><i class="fas fa-keyboard mr-2" style="color:var(--accent)"></i>Khu vực Nhập liệu</h2>
+        <textarea id="inputText" class="input-area" placeholder="Dán hoặc nhập bình luận tiếng Việt (CÓ DẤU) vào đây..." aria-label="Nhập bình luận"></textarea>
+        <div class="flex flex-wrap gap-2 mt-3 mb-4 items-center">
+          <span class="text-sm font-medium" style="color:var(--text-muted);line-height:30px">Ví dụ sẵn:</span>
+          <button class="sample-chip" data-text="Bài hát hay quá, tôi thích lắm!">Ví dụ 1</button>
+          <button class="sample-chip" data-text="Mày ngu vãi lồn, chỉ biết phá">Ví dụ 2</button>
+          <button class="sample-chip" data-text="Lũ bán nước đáng bị xử bắn hết đi">Ví dụ 3</button>
         </div>
-        <div class="flex flex-col">
-          <div id="resultPlaceholder" class="glass-card flex flex-col items-center justify-center text-center flex-1" style="min-height:100%;">
-            <i class="fas fa-shield-halved text-2xl mb-2" style="color:var(--border)"></i>
-            <p class="font-display font-semibold text-lg" style="color:var(--text-muted)">No Results Yet</p>
-            <p class="text-sm mt-1" style="color:var(--text-muted);opacity:0.65">Enter a comment and click "Analyze & Scan"</p>
+        <button class="btn-primary w-full justify-center" id="analyzeBtn" onclick="analyzeAll()" style="padding:14px 22px;font-size:15px;">
+          <div class="spinner"></div>
+          <span class="btn-text"><i class="fas fa-magnifying-glass-chart"></i> Chạy Phân tích Toàn diện (Run All Tasks)</span>
+        </button>
+      </div>
+
+      <!-- ==================== 4-BLOCK DASHBOARD ==================== -->
+      <div id="resultsCard" class="mt-6" style="display:none;">
+        <div class="flex items-center gap-2 mb-3">
+          <h2 class="font-display font-bold text-lg" style="color:var(--text)"><i class="fas fa-chart-pie mr-2" style="color:var(--accent)"></i>Bảng kết quả 4 tác vụ</h2>
+          <span class="pipe-sub" id="totalTiming"></span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4" id="dashGrid">
+          <!-- HSD -->
+          <div class="glass-card task-card" id="blockHSD">
+            <div class="task-head">
+              <i class="fas fa-shield-halved" style="color:var(--accent)"></i>
+              <span>HSD — Phát hiện Thù địch</span>
+              <span class="task-sub">hate-speech-detection</span>
+            </div>
+            <div class="task-badge label-loading" id="hsdBadge">CHƯA CHẠY</div>
+            <div class="task-foot" id="hsdFoot"></div>
           </div>
-          <div id="resultCard" class="result-card" style="display:none;">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="result-icon" id="resultIcon"><i class="fas fa-check"></i></div>
-              <div>
-                <div class="font-display font-extrabold text-base" id="resultLabel">CLEAN</div>
-                <div class="text-sm mt-1" id="resultDesc">Safe and friendly comment.</div>
-              </div>
+
+          <!-- CTSD -->
+          <div class="glass-card task-card" id="blockCTSD">
+            <div class="task-head">
+              <i class="fas fa-skull" style="color:var(--accent)"></i>
+              <span>CTSD — Bình luận Độc hại</span>
+              <span class="task-sub">toxic-speech-detection</span>
             </div>
-            <div class="flex items-center gap-4 mb-1">
-              <div style="width:82px;height:82px;flex-shrink:0;">
-                <svg viewBox="0 0 120 120" class="gauge-svg" style="width:100%;height:100%;"><circle class="gauge-bg" cx="60" cy="60" r="50"/><circle class="gauge-fill" id="gaugeFill" cx="60" cy="60" r="50" stroke-dasharray="314.16" stroke-dashoffset="314.16"/></svg>
-                <div style="margin-top:-60px;text-align:center;"><span class="gauge-text font-display" id="gaugeText" style="font-size:17px;">0%</span></div>
-              </div>
-              <div>
-                <div class="text-sm font-semibold uppercase mb-2" style="color:var(--text-muted);letter-spacing:1px;">Confidence</div>
-                <div class="text-sm" style="color:var(--text-muted)" id="confidenceDesc">AI has not analyzed yet</div>
-                <div class="mt-2 w-36 h-1.5 rounded-full" style="background:var(--chart-grid);"><div class="h-full rounded-full transition-all duration-1000" id="confidenceBar" style="width:0%;"></div></div>
-              </div>
+            <div class="task-badge label-loading" id="ctsdBadge">CHƯA CHẠY</div>
+            <div class="task-foot" id="ctsdFoot"></div>
+          </div>
+
+          <!-- HOS -->
+          <div class="glass-card task-card" id="blockHOS">
+            <div class="task-head">
+              <i class="fas fa-marker" style="color:var(--accent)"></i>
+              <span>HOS — Trích vùng Vi phạm</span>
+              <span class="task-sub">hate-spans-detection</span>
             </div>
-            <button class="expander-trigger" id="expanderTrigger" onclick="toggleExpander()"><i class="fas fa-chevron-down"></i><span class="text-sm font-medium">What did the AI see?</span></button>
-            <div class="expander-content" id="expanderContent"><div class="pt-1" id="prepSteps"></div></div>
+            <div id="hosText" class="span-text" style="flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-style:italic;">—</div>
+            <div class="task-foot" id="hosFoot"></div>
+          </div>
+
+          <!-- QA -->
+          <div class="glass-card task-card" id="blockQA">
+            <div class="task-head">
+              <i class="fas fa-robot" style="color:var(--accent)"></i>
+              <span>QA — Giải thích Vì sao</span>
+              <span class="task-sub">hate-speech-qa</span>
+            </div>
+            <div id="qaText" class="qa-explain" style="flex:1;">—</div>
+            <div class="task-foot" id="qaFoot"></div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
+    </section><!-- /page-single -->
 
-    <!-- ==================== TAB 2 ==================== -->
-    <div class="tab-panel" id="panel-batch" role="tabpanel">
-      <div class="glass-card mb-4">
-        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-upload mr-2" style="color:var(--accent)"></i>Upload CSV File</h2>
-        <p class="text-sm mb-4" style="color:var(--text-muted)">Supports .csv files with a "text" column or the first column. Max 500 rows.</p>
-        <div class="upload-zone" id="uploadZone" role="button" tabindex="0" aria-label="Upload CSV file">
-          <input type="file" id="fileInput" accept=".csv" style="display:none;">
+    <!-- ============ PAGE: BATCH ============ -->
+    <section class="page" id="page-batch" data-route="batch">
+      <section class="hero-card mb-4">
+        <h1 class="font-display leading-tight mb-2" style="font-size:clamp(22px,3vw,30px);font-weight:800;color:var(--text)">
+          Batch — <span style="color:var(--accent)">Kiểm duyệt hàng loạt</span>
+        </h1>
+        <p class="text-sm max-w-3xl" style="color:var(--text-muted);line-height:1.65">
+          Upload 1 file CSV, web sẽ chạy 4 task cho từng dòng và tổng hợp số liệu + biểu đồ.
+          Phù hợp để rà soát nhanh 1 lô bình luận.
+        </p>
+      </section>
+
+      <div class="glass-card">
+        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-upload mr-2" style="color:var(--accent)"></i>Upload CSV</h2>
+        <p class="text-sm mb-3" style="color:var(--text-muted)">Yêu cầu file:</p>
+        <ul class="req-list mb-3">
+          <li><i class="fas fa-check-circle"></i> Định dạng <b>.csv</b> (UTF-8)</li>
+          <li><i class="fas fa-check-circle"></i> Có cột tên <b>text</b> (hoặc cột đầu tiên)</li>
+          <li><i class="fas fa-check-circle"></i> Tối đa <b>500 dòng</b></li>
+          <li><i class="fas fa-check-circle"></i> Kích thước &lt; <b>2 MB</b></li>
+          <li><i class="fas fa-check-circle"></i> Tiếng Việt <b>có dấu</b> cho kết quả tốt</li>
+          <li><i class="fas fa-check-circle"></i> Mỗi dòng = 1 bình luận, &lt; 512 ký tự</li>
+        </ul>
+        <div class="upload-zone" id="uploadZone" role="button" tabindex="0">
+          <input type="file" id="fileInput" accept=".csv,text/csv" style="display:none;">
           <div class="upload-icon"><i class="fas fa-cloud-arrow-up"></i></div>
-          <div class="font-display font-semibold text-lg mb-1" style="color:var(--text)">Drag and drop file here</div>
-          <div class="text-sm" style="color:var(--text-muted)">or click to select a .csv file</div>
+          <div class="font-display font-semibold text-base" style="color:var(--text)">Kéo &amp; thả file CSV vào đây</div>
+          <div class="text-sm mt-1" style="color:var(--text-muted)">hoặc bấm để chọn file</div>
         </div>
         <div id="fileInfo" class="mt-3 text-sm font-medium" style="color:var(--text-muted);display:none;"></div>
       </div>
-      <div id="batchProgress" class="glass-card mb-4" style="display:none;">
+
+      <div id="batchProgress" class="glass-card mt-4" style="display:none;">
         <div class="flex items-center gap-2 mb-2">
           <div style="width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;"></div>
-          <span class="font-display font-semibold text-sm" id="batchStatus">Processing...</span>
+          <span class="font-display font-semibold text-sm" id="batchStatus">Đang chuẩn bị...</span>
         </div>
-        <div class="w-full h-1.5 rounded-full" style="background:var(--chart-grid);"><div class="h-full rounded-full transition-all duration-300" id="batchBar" style="width:0%;background:var(--accent);"></div></div>
+        <div class="w-full h-2 rounded-full" style="background:var(--chart-grid);"><div class="h-full rounded-full transition-all duration-300" id="batchBar" style="width:0%;background:var(--accent);"></div></div>
       </div>
-      <div id="batchResults" style="display:none;">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="font-display font-bold text-lg" style="color:var(--text)"><i class="fas fa-table mr-2" style="color:var(--accent)"></i>Analysis Results</h2>
-          <button class="btn-primary" style="padding:10px 18px;font-size:14px;" onclick="downloadBatchCSV()"><i class="fas fa-download"></i> Download CSV</button>
-        </div>
-        <div class="grid grid-cols-3 gap-4 mb-4" id="batchSummary"></div>
-        <div class="glass-card" style="padding:0;overflow:hidden;">
-          <div style="max-height:400px;overflow-y:auto;"><table class="data-table" id="batchTable"><thead><tr><th>#</th><th>Comment</th><th>Label</th><th>Confidence</th></tr></thead><tbody></tbody></table></div>
-        </div>
-      </div>
-    </div>
 
-    <!-- ==================== TAB 3 ==================== -->
-    <div class="tab-panel" id="panel-model" role="tabpanel">
-      <div class="glass-card mb-4">
-        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-chart-column mr-2" style="color:var(--accent)"></i>F1-Score Comparison Between Models</h2>
-        <p class="text-sm mb-4" style="color:var(--text-muted)">Evaluation on Test Set — Main Metric: Macro F1</p>
-        <div style="height:300px;"><canvas id="modelChart"></canvas></div>
-      </div>
-      <div class="grid grid-layout gap-4" style="grid-template-columns:1fr 1fr;">
-        <div class="glass-card">
-          <h2 class="font-display font-bold text-sm mb-3" style="color:var(--text)">Detailed F1 Scores</h2>
-          <div style="overflow-x:auto;"><table class="data-table" id="f1Table"><thead><tr><th>Model</th><th>Macro F1</th><th>F1 Clean</th><th>F1 Off</th><th>F1 Hate</th></tr></thead><tbody></tbody></table></div>
+      <div id="batchResults" style="display:none;">
+        <!-- stats cards -->
+        <div class="grid grid-cols-4 gap-3 mt-4" id="statsGrid"></div>
+
+        <!-- charts -->
+        <div class="grid grid-cols-2 gap-4 mt-4" id="chartsGrid">
+          <div class="glass-card">
+            <h3 class="font-display font-bold text-sm mb-2" style="color:var(--text)"><i class="fas fa-chart-pie mr-2" style="color:var(--accent)"></i>HSD — phân bố nhãn</h3>
+            <div style="height:240px;"><canvas id="chartHSD"></canvas></div>
+          </div>
+          <div class="glass-card">
+            <h3 class="font-display font-bold text-sm mb-2" style="color:var(--text)"><i class="fas fa-chart-pie mr-2" style="color:var(--accent)"></i>CTSD — độc hại?</h3>
+            <div style="height:240px;"><canvas id="chartCTSD"></canvas></div>
+          </div>
+          <div class="glass-card">
+            <h3 class="font-display font-bold text-sm mb-2" style="color:var(--text)"><i class="fas fa-chart-bar mr-2" style="color:var(--accent)"></i>Phân bố độ tự tin (HSD)</h3>
+            <div style="height:240px;"><canvas id="chartConf"></canvas></div>
+          </div>
+          <div class="glass-card">
+            <h3 class="font-display font-bold text-sm mb-2" style="color:var(--text)"><i class="fas fa-chart-line mr-2" style="color:var(--accent)"></i>Top từ độc hại (HOS spans)</h3>
+            <div style="height:240px;"><canvas id="chartTopSpans"></canvas></div>
+          </div>
         </div>
-        <div class="glass-card">
-          <h2 class="font-display font-bold text-sm mb-2" style="color:var(--text)">Confusion Matrix</h2>
-          <p class="text-sm mb-4" style="color:var(--text-muted)">LogisticRegression — Test Set</p>
-          <div id="confusionMatrix" class="flex flex-col gap-2"></div>
+
+        <div class="glass-card mt-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-display font-bold text-sm" style="color:var(--text)"><i class="fas fa-table mr-2" style="color:var(--accent)"></i>Bảng chi tiết</h3>
+            <button class="btn-primary" style="padding:8px 16px;font-size:12px;" onclick="downloadBatchCSV()"><i class="fas fa-download"></i> Tải CSV</button>
+          </div>
+          <div style="max-height:420px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;">
+            <table class="batch-table w-full">
+              <thead><tr><th>#</th><th>Bình luận</th><th>HSD</th><th>CTSD</th><th>Vùng thù ghét (HOS)</th></tr></thead>
+              <tbody id="batchTbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-      <div class="glass-card mt-4">
-        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-chart-line mr-2" style="color:var(--accent)"></i>Learning Curve — LogisticRegression</h2>
-        <p class="text-sm mb-4" style="color:var(--text-muted)">Macro F1 by training set size (3-Fold Stratified CV)</p>
-        <div style="height:320px;"><canvas id="learningChart"></canvas></div>
+    </section><!-- /page-batch -->
+
+    <!-- ============ PAGE: ABOUT ============ -->
+    <section class="page" id="page-about" data-route="about">
+      <section class="hero-card mb-4">
+        <h1 class="font-display leading-tight mb-2" style="font-size:clamp(22px,3vw,30px);font-weight:800;color:var(--text)">
+          Đồ án — <span style="color:var(--accent)">CS222: Vietnamese Hate Speech</span>
+        </h1>
+        <p class="text-sm max-w-3xl" style="color:var(--text-muted);line-height:1.65">
+          Benchmark các kiến trúc Transformer (encoder-only, encoder-decoder, decoder-only) cho task
+          phát hiện ngôn từ thù ghét tiếng Việt. Tái lập benchmark gốc từ paper <b>ViHateT5</b>
+          (ACL 2024 Findings). Demo hiện đang phục vụ model <b>ViHateT5-base-HSD</b> + 1 model QA fine-tune.
+        </p>
+      </section>
+
+      <h2 class="font-display font-bold text-lg mb-3" style="color:var(--text)"><i class="fas fa-database mr-2" style="color:var(--accent)"></i>4 bộ dữ liệu sử dụng</h2>
+      <div class="grid grid-cols-2 gap-4" id="dsGrid">
+        <!-- ViHSD -->
+        <div class="ds-card">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="ds-name">ViHSD</span>
+              <span class="ds-tag">HSD · 3-class</span>
+            </div>
+            <a href="https://huggingface.co/datasets/uitnlp/vihsd" target="_blank" class="text-xs" style="color:var(--accent)">uitnlp/vihsd ↗</a>
+          </div>
+          <p class="text-sm mt-2" style="color:var(--text-muted)">Bình luận Facebook/YouTube tiếng Việt, gán 3 nhãn <b>CLEAN / OFFENSIVE / HATE</b>. Bộ chuẩn cho task hate-speech-detection.</p>
+          <div class="ds-meta">
+            <div><div class="v">33,400</div><div class="l">samples</div></div>
+            <div><div class="v">24K / 2.7K / 6.7K</div><div class="l">train/dev/test</div></div>
+            <div><div class="v">Luu+ 2021</div><div class="l">source</div></div>
+          </div>
+          <div style="height:180px;"><canvas id="dsChartVihsd"></canvas></div>
+        </div>
+
+        <!-- ViCTSD -->
+        <div class="ds-card">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="ds-name">ViCTSD</span>
+              <span class="ds-tag">Toxic · binary</span>
+            </div>
+            <a href="https://huggingface.co/datasets/tarudesu/ViCTSD" target="_blank" class="text-xs" style="color:var(--accent)">tarudesu/ViCTSD ↗</a>
+          </div>
+          <p class="text-sm mt-2" style="color:var(--text-muted)">Bình luận VnExpress, gán nhãn <b>NONE / TOXIC</b> + nhãn constructiveness phụ. Dùng cho task toxic-speech-detection.</p>
+          <div class="ds-meta">
+            <div><div class="v">10,000</div><div class="l">samples</div></div>
+            <div><div class="v">7K / 2K / 1K</div><div class="l">train/dev/test</div></div>
+            <div><div class="v">Nguyen+ 2021</div><div class="l">source</div></div>
+          </div>
+          <div style="height:180px;"><canvas id="dsChartVictsd"></canvas></div>
+        </div>
+
+        <!-- ViHOS -->
+        <div class="ds-card">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="ds-name">ViHOS</span>
+              <span class="ds-tag">Spans · syllable</span>
+            </div>
+            <a href="https://github.com/phusroyal/ViHOS" target="_blank" class="text-xs" style="color:var(--accent)">phusroyal/ViHOS ↗</a>
+          </div>
+          <p class="text-sm mt-2" style="color:var(--text-muted)">Bộ đầu tiên gán <b>vùng từ thù ghét</b> ở mức âm tiết. Dùng cho task hate-spans-detection — model trả về cụm <code>[hate]...[hate]</code>.</p>
+          <div class="ds-meta">
+            <div><div class="v">11,056</div><div class="l">comments</div></div>
+            <div><div class="v">26,476</div><div class="l">hate spans</div></div>
+            <div><div class="v">Hoang+ 2023</div><div class="l">source</div></div>
+          </div>
+          <div style="height:180px;"><canvas id="dsChartVihos"></canvas></div>
+        </div>
+
+        <!-- Personal QA -->
+        <div class="ds-card">
+          <div class="flex items-start justify-between">
+            <div>
+              <span class="ds-name">vihsd_qa_gemini</span>
+              <span class="ds-tag" style="background:rgba(217,119,6,0.13);color:var(--offensive);">Personal · QA</span>
+            </div>
+            <span class="text-xs" style="color:var(--text-muted)">vihsd_qa_gemini_GT_Final.csv</span>
+          </div>
+          <p class="text-sm mt-2" style="color:var(--text-muted)">Bộ <b>tự build</b>: lấy mẫu từ ViHSD rồi dùng Gemini sinh câu giải thích "vì sao câu này độc hại?". Dùng để fine-tune model QA (task <code>hate-speech-qa</code>).</p>
+          <div class="ds-meta">
+            <div><div class="v">1,000</div><div class="l">cặp (in/out)</div></div>
+            <div><div class="v">500 / 500</div><div class="l">clean / toxic</div></div>
+            <div><div class="v">Gemini AI</div><div class="l">annotator + human verify</div></div>
+          </div>
+          <div class="text-xs mt-2" style="color:var(--text-muted);font-style:italic">Không hiển thị label distribution vì là dataset task sinh văn bản (QA), không phải phân loại.</div>
+        </div>
       </div>
-      <div class="glass-card mt-4">
-        <h2 class="font-display font-bold text-lg mb-2" style="color:var(--text)"><i class="fas fa-flask mr-2" style="color:var(--accent)"></i>Ablation Study</h2>
-        <p class="text-sm mb-4" style="color:var(--text-muted)">Contribution of each feature group</p>
-        <div style="height:260px;"><canvas id="ablationChart"></canvas></div>
+
+      <h2 class="font-display font-bold text-lg mt-6 mb-3" style="color:var(--text)"><i class="fas fa-cube mr-2" style="color:var(--accent)"></i>Model dùng cho demo</h2>
+      <div class="ds-card">
+        <span class="ds-name">tarudesu/ViHateT5-base-HSD</span>
+        <span class="ds-tag">T5 · 223M params · encoder-decoder</span>
+        <p class="text-sm mt-2" style="color:var(--text-muted)">Continual pre-train từ <b>ViT5-base</b> trên <b>VOZ-HSD</b> (10.7M comment forum VOZ, auto-labeled), rồi fine-tune đa nhiệm trên 3 task. Mỗi task dùng 1 prefix khác nhau.</p>
+        <div class="ds-meta" style="grid-template-columns:repeat(4,1fr)">
+          <div><div class="v">0.7545</div><div class="l">Average MF1</div></div>
+          <div><div class="v">0.6836</div><div class="l">Macro F1 (ViHSD)</div></div>
+          <div><div class="v">0.7163</div><div class="l">MF1 (ViCTSD)</div></div>
+          <div><div class="v">0.8636</div><div class="l">MF1 (ViHOS)</div></div>
+        </div>
       </div>
-    </div>
+    </section><!-- /page-about -->
 
   </main>
 </div>

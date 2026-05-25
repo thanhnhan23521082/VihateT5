@@ -1,9 +1,17 @@
-pandas
-numpy
-scikit-learn
-scipy
-joblib
-underthesea
+# --- Local app (FastAPI proxy gọi ViHateT5 remote) ---
 fastapi
 uvicorn
 pydantic
+requests
+python-dotenv
+
+# --- Model chạy REMOTE trên Kaggle, không cần ở máy local ---
+# (xem kaggle/README.md: transformers, torch, sentencepiece, pyngrok, ...)
+
+# --- Pipeline ML cũ (không còn dùng cho inference; giữ nếu cần chạy lại) ---
+# pandas
+# numpy
+# scikit-learn
+# scipy
+# joblib
+# underthesea

@@ -10,6 +10,10 @@ venv/
 env/
 .env/
 
+# Secrets (giữ .env.example, bỏ .env thật)
+.env
+!.env.example
+
 
 # IDEs
 .vscode/

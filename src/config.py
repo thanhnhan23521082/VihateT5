@@ -1,7 +1,25 @@
 # src/config.py
+import os
+
+# Nạp biến môi trường từ file .env (nếu có python-dotenv).
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# --- CẤU HÌNH MODEL REMOTE (ViHateT5 host trên Kaggle qua ngrok) ---
+# URL ngrok đổi mỗi phiên Kaggle -> luôn đọc từ .env, không hardcode.
+REMOTE_API_URL = os.environ.get("REMOTE_API_URL", "").strip().rstrip("/")
+# Tự thêm scheme nếu người dùng quên (vd dán "xxx.ngrok-free.dev").
+if REMOTE_API_URL and not REMOTE_API_URL.startswith(("http://", "https://")):
+    REMOTE_API_URL = "https://" + REMOTE_API_URL
+REMOTE_API_TOKEN   = os.environ.get("REMOTE_API_TOKEN", "")
+REMOTE_API_TIMEOUT = float(os.environ.get("REMOTE_API_TIMEOUT", "60"))
+
 # --- Bổ sung vào cuối file config.py ---
 # Ngưỡng tối ưu tìm được từ quá trình Tuning
-DEFAULT_THRESHOLD_HATE = 0.35 
+DEFAULT_THRESHOLD_HATE = 0.35
 DEFAULT_THRESHOLD_OFF  = 0.35
 # CẤU HÌNH CHUNG 
 SEED = 42
