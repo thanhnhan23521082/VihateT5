@@ -561,8 +561,6 @@ Implementation: [`kaggle/vihatet5_kaggle_server.py:97-108`](kaggle/vihatet5_kagg
 - **Qwen2.5-7B-Instruct** — [Qwen/Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)
 - **URA-LLaMa** — [ura-hcmut/ura-llama-7b](https://huggingface.co/ura-hcmut/ura-llama-7b)
 
-### Báo cáo nhóm
-- [`CS222-Draft.pdf`](CS222-Draft.pdf)
 
 ---
 
